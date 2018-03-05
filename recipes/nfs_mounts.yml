@@ -1,0 +1,48 @@
+- hosts: sii-dev-batch, sii-dev-web, sii-dev-proc, sii-dev-obsidian
+  vars:
+    env: "{{ lookup('env','AZURE_SII_ENV') }}"
+    nfs_server: 172.23.152.6
+    exports:
+      - { export: "{{ env }}-xa", path: /var/cache/sii/xa, filename: var-cache-sii-xa }
+      - { export: "{{ env }}-b2bdocs-lros", path: /var/cache/sii/b2bdocs/LROS, filename: var-cache-sii-b2bdocs-LROS }
+      - { export: "{{ env }}-b2bdocs-lroav", path: /var/cache/sii/b2bdocs/LROAV, filename: var-cache-sii-b2bdocs-LROAV }
+      - { export: "{{ env }}-b2bdocs-lrfr", path: /var/cache/sii/b2bdocs/LRFR, filename: var-cache-sii-b2bdocs-LRFR }
+      - { export: "{{ env }}-b2bdocs-lrfe", path: /var/cache/sii/b2bdocs/LRFE, filename: var-cache-sii-b2bdocs-LRFE }
+      - { export: "{{ env }}-b2bdocs-lrdoi", path: /var/cache/sii/b2bdocs/LRDOI, filename: var-cache-sii-b2bdocs-LRDOI }
+      - { export: "{{ env }}-b2bdocs-unknown", path: /var/cache/sii/b2bdocs/UNKNOWN_FAMILY, filename: var-cache-sii-b2bdocs-UNKNOWN_FAMILY }
+      - { export: "{{ env }}-b2bdocs-lrcm", path: /var/cache/sii/b2bdocs/LRCM, filename: var-cache-sii-b2bdocs-LRCM }
+      - { export: "{{ env }}-b2bdocs-lrbi", path: /var/cache/sii/b2bdocs/LRBI, filename: var-cache-sii-b2bdocs-LRBI }
+      - { export: "{{ env }}-b2bdocs-docsdivisionpath", path: /var/cache/sii/b2bdocs/docsdivisionpath, filename: var-cache-sii-b2bdocs-docsdivisionpath.mount }
+  tasks:
+  - name: create systemd mount for {{ item.path }}
+    tags: [nfs_test]
+    with_items: "{{ exports }}"
+    copy:
+      dest: "/etc/systemd/system/{{ item.filename }}.mount"
+      mode: 0644
+      owner: root
+      group: root
+      content: |
+        [Unit]
+        Description={{ item.path }} directory
+        Requires=network-online.target
+        After=network-online.service
+        
+        [Mount]
+        What={{ nfs_server }}:/{{ item.export }}
+        Where={{ item.path }}
+        Type=nfs4
+        Options=rsize=8192,wsize=8192,intr,_netdev
+
+        [Install]
+        WantedBy=multi-user.target
+
+
+#  - name: enable and start mount point for {{ item.path }}
+#    tags: [nfs_test]
+#    with_items: "{{ exports }}"
+#    systemd:
+#      name: "{{ item.filename }}.mount"
+#      daemon_reload: yes
+#      enabled: yes
+#      state: started

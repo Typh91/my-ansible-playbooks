@@ -1,0 +1,205 @@
+- hosts: all
+  gather_facts: true
+  vars:
+    lvm:
+      - { lv: mysql_lib_lv, path: /var/lib/mysql, dev: /dev/mapper/root_vg-mysql_lib_lv, size: 16g }
+      - { lv: mysql_log_lv, path: /var/log/mysql, dev: /dev/mapper/root_vg-mysql_log_lv, size: 7g }
+  tasks:
+    - name: Configure MySQL 5.7.10 repo
+      tags: [yum, mysql_repo, mysql]
+      copy:
+        dest: /etc/yum.repos.d/mysql.repo
+        mode: 0644
+        owner: root
+        group: root
+        content: |
+          [mysql-5.7.10]
+          name=mysql-5.7.10
+          baseurl=http://cobbler.mmdd.indra.es/cobbler/repo_mirror/mysql/mysql-5.7/5.7.10
+          gpgkey=http://cobbler.mmdd.indra.es/cobbler/repo_mirror/mysql/RPM-GPG-KEY-mysql
+          gpgcheck=1
+          enabled=1
+          proxy=_none_
+
+    - name: Configure Zabbix repo
+      tags: [yum, zabbix]
+      copy:
+        dest: /etc/yum.repos.d/zabbix.repo
+        mode: 0644
+        owner: root
+        group: root
+        content: |
+          [zabbix]
+          name=Zabbix Official Repository - $basearch
+          baseurl=http://repo.zabbix.com/zabbix/3.4/rhel/7/$basearch
+          enabled=1
+          fastestmirror_enabled=0
+          gpgcheck=1
+          gpgkey=http://repo.zabbix.com/RPM-GPG-KEY-ZABBIX-A14FE591
+
+    - name: Install basic packages
+      tags: [yum]
+      yum:
+        name: nfs-utils,htop,vim,tree,nc,net-snmp-utils,telnet,bash-completion
+        state: latest
+
+    - name: Create mysql lvs
+      tags: [mysql_lvs, mysql]
+      with_items: "{{ lvm }}"
+      lvol:
+        vg: root_vg
+        lv: "{{ item.lv }}"
+        size: "{{ item.size }}"
+
+    - name: Making FS format
+      tags: [fs]
+      with_items: "{{ lvm }}"
+      filesystem:
+        fstype: xfs
+        dev: "{{ item.dev }}"
+
+    - name: Create mysql user
+      tags: [mysql_user, mysql]
+      user:
+        name: mysql
+        shell: /sbin/nologin
+        home: /var/lib/mysql
+        uid: 27
+        comment: "MySQL Server"
+
+    - name: Create mysql directories
+      tags: [mysql_directories, mysql]
+      with_items: "{{ lvm }}"
+      file:
+        path: "{{ item.path }}"
+        state: directory
+
+    - name: Check if mysql lvs exists in /etc/fstab
+      tags: [fstab]
+      shell: grep /dev/mapper/root_vg-mysql_lib_lv /etc/fstab
+      register: grep_result
+
+    - name: Add mysql filesystems to /etc/fstab
+      tags: [fstab]
+      with_items: "{{ lvm }}"
+      lineinfile:
+        path: /etc/fstab
+        line: "{{ item.dev }} {{ item.path }} xfs   defaults  0 0"
+        insertafter: EOF
+      when: grep_result.stdout != ""
+
+    - name: Mount MySQL filesystems
+      tags: [mount]
+      command: mount -a
+
+    - name: Change MySQL mounted FS permissions
+      tags: [mysql_directories, mysql, permissions]
+      with_items: "{{ lvm }}"
+      file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: mysql
+        group: mysql
+        mode: 0755
+
+    - name: Install MySQL 5.7.10
+      tags: [yum]
+      yum:
+        name: mysql-commercial-server
+        state: present
+
+    - name: Copy old /etc/my.cnf
+      tags: [my.cnf, backup]
+      copy:
+        src: /etc/my.cnf
+        dest: /etc/my.cnf_old
+        force: no
+
+    - name: Use new my.cnf
+      tags: [my.cnf]
+      template:
+        src: /var/lib/jenkins/bin/ansible-playbooks/files/my.cnf
+        dest: /etc/my.cnf
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: Publish 3306/tcp port in firewalld
+      tags: [firewalld]
+      notify:
+        - reload firewalld
+      firewalld:
+        zone: public
+        port: 3306/tcp
+        state: enabled
+        permanent: true
+
+    - name: Change number of open files for MySQL
+      tags: [ulimits, openfiles]
+      notify:
+        - restart mysql
+      pam_limits:
+        domain: mysql
+        limit_type: '-'
+        limit_item: nofile
+        value: 100000
+
+    - name: Start MySQL
+      tags: [systemd, mysql]
+      systemd:
+        name: mysqld
+        state: started
+
+  handlers:
+    - name: reload firewalld
+      shell: firewall-cmd --reload
+
+    - name: restart mysql
+      systemd:
+        name: mysqld
+        state: restarted
+
+#    - name: Create /var/lib/mysql lv
+#      tags: [mysql_lvs, mysql]
+#      lvol:
+#        vg: root_vg
+#        lv: mysql_lib_lv
+#        size: 16g
+
+#    - name: Create /var/log/mysql lv
+#      tags: [mysql_lvs, mysql]
+#      lvol:
+#        vg: root_vg
+#        lv: mysql_log_lv
+#        size: 7g
+
+#    - name: Making FS format
+#      tags: [fs]
+#      with_items:
+#        - root_vg-mysql_log_lv
+#        - root_vg-mysql_lib_lv
+#      filesystem:
+#        fstype: xfs
+#        dev: /dev/mapper/{{ item }}
+
+#    - name: Create mysql directories
+#      tags: [mysql_directories, mysql]
+#      with_items: 
+#        - /var/lib/mysql
+#        - /var/log/mysql
+#      file:
+#        path: {{ item }}
+#        state: directory
+
+#    - name: Change ownership of mysql directories
+#      tags: [mysql_directories, mysql]
+#      with_items: 
+#        - /var/lib/mysql
+#        - /var/log/mysql
+#      file:
+#        path: {{ item }}
+#        state: directory
+#        owner: mysql
+#        group: mysql
+#        mode: 0755
+#        recurse: yes
