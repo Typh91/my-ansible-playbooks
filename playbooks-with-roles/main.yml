@@ -1,0 +1,10 @@
+---
+- hosts: all
+  gather_facts: true
+  vars:
+    is_mysql: "True if mysql in ansible_hostname else False"
+
+  roles:
+    - basic
+    - users
+    - { role: mysql, when: is_mysql == True } 
