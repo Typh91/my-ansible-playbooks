@@ -54,23 +54,23 @@
       gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-7
 
 - name: Configure Zabbix repo
-    tags: [os, yum]
-    copy:
-      dest: /etc/yum.repos.d/zabbix.repo
-      mode: 0644
-      owner: root
-      group: root
-      content: |
-        [zabbix]
-        name=Zabbix Official Repository - $basearch
-        baseurl=http://repo.zabbix.com/zabbix/3.4/rhel/7/$basearch
-        enabled=1
-        fastestmirror_enabled=0
-        gpgcheck=1
-        gpgkey=http://repo.zabbix.com/RPM-GPG-KEY-ZABBIX-A14FE591
+  tags: [os, yum]
+  copy:
+    dest: /etc/yum.repos.d/zabbix.repo
+    mode: 0644
+    owner: root
+    group: root
+    content: |
+      [zabbix]
+      name=Zabbix Official Repository - $basearch
+      baseurl=http://repo.zabbix.com/zabbix/3.4/rhel/7/$basearch
+      enabled=1
+      fastestmirror_enabled=0
+      gpgcheck=1
+      gpgkey=http://repo.zabbix.com/RPM-GPG-KEY-ZABBIX-A14FE591
 
 - name: Install basic packages
-    tags: [os, yum]
-    yum:
-      name: nfs-utils,htop,vim,tree,nc,net-snmp-utils,telnet,glances
-      state: latest
+  tags: [os, yum]
+  yum:
+    name: nfs-utils,htop,vim,tree,nc,net-snmp-utils,telnet,glances
+    state: latest

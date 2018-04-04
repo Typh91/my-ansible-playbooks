@@ -1,17 +1,17 @@
 ---
 - name: Create sysadm user
-    tags: [os, users]
-    user:
-      name: sysadm
-      shell: /bin/bash
-      home: /home/sysadm
-      uid: 500
+  tags: [os, users]
+  user:
+    name: sysadm
+    shell: /bin/bash
+    home: /home/sysadm
+    uid: 500
 
 - name: Copy sysadm authorized_keys
-    tags: [os, users]
-    copy:
-      src: "{{ role_path }}/files/authorized_keys_sysadm"
-      dest: "/home/sysadm/.ssh/authorized_keys"
-      mode: 0644
-      owner: sysadm
-      group: sysadm
+  tags: [os, users]
+  copy:
+    src: "{{ role_path }}/files/authorized_keys_sysadm"
+    dest: "/home/sysadm/.ssh/authorized_keys"
+    mode: 0644
+    owner: sysadm
+    group: sysadm
