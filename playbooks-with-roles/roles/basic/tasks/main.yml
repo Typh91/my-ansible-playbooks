@@ -74,5 +74,5 @@
 - name: Install basic packages
   tags: [os, yum]
   yum:
-    name: nfs-utils,htop,vim,nc,net-snmp-utils,telnet,glances
+    name: nfs-utils,htop,vim,net-snmp-utils,telnet,glances
     state: latest
