@@ -71,6 +71,16 @@
       gpgkey=http://repo.zabbix.com/RPM-GPG-KEY-ZABBIX-A14FE591
       proxy=http://172.16.236.20:8080
 
+- name: Subscribe to RHSM
+  tags: [os, yum]
+  redhat_subscription:
+    state: present
+    server_proxy_hostname: 172.16.236.20
+    server_proxy_port: 8080
+    username:
+    password:
+    pool_ids: 8a85f98a5bd22160015bd26ba9cc6d04
+
 - name: Install basic packages
   tags: [os, yum]
   yum:
