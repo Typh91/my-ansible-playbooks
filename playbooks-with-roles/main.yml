@@ -4,7 +4,15 @@
   vars:
     is_mysql: "True if mysql in ansible_hostname else False"
 
+  pre_tasks:
+    - shell: subscription-manager status | grep Current
+      register: grep_result
+
   roles:
-    - basic
-    - users
+
+    - role: basic
+      grep_result: grep_result
+
+    - role: users
+    
     #- { role: mysql, when: is_mysql == True } 

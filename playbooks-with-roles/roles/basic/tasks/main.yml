@@ -73,6 +73,7 @@
 
 - name: Subscribe to RHSM
   tags: [os, yum]
+  when: grep_result.rc != 0
   redhat_subscription:
     state: present
     server_proxy_hostname: 172.16.236.20
