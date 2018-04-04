@@ -52,6 +52,7 @@
       enabled=1
       gpgcheck=1
       gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-7
+      proxy=http://172.16.236.20:8080
 
 - name: Configure Zabbix repo
   tags: [os, yum]
@@ -68,6 +69,7 @@
       fastestmirror_enabled=0
       gpgcheck=1
       gpgkey=http://repo.zabbix.com/RPM-GPG-KEY-ZABBIX-A14FE591
+      proxy=http://172.16.236.20:8080
 
 - name: Install basic packages
   tags: [os, yum]
