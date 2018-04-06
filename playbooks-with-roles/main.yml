@@ -5,13 +5,14 @@
     is_mysql: "True if mysql in ansible_hostname else False"
 
   pre_tasks:
-    - shell: subscription-manager status | grep Current
+    - shell: subscription-manager status | grep Overall | awk -F':' '{print $2}'
+      tags: [rhsm]
       register: grep_result
 
   roles:
 
     - role: basic
-      grep_result: grep_result
+      is_subscribed: "{{ grep_result.stdout }}"
 
     - role: users
     
