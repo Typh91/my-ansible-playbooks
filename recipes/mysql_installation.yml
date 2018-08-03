@@ -2,10 +2,10 @@
   gather_facts: true
   vars:
     lvm:
-      - { lv: mysql_lib_lv, path: /var/lib/mysql, dev: /dev/mapper/root_vg-mysql_lib_lv, size: 16g }
-      - { lv: mysql_log_lv, path: /var/log/mysql, dev: /dev/mapper/root_vg-mysql_log_lv, size: 7g }
+      - { lv: mysql_lib_lv, path: /var/lib/mysql, dev: /dev/mapper/root_vg-mysql_lib_lv, size: {{ lib_size }} }
+      - { lv: mysql_log_lv, path: /var/log/mysql, dev: /dev/mapper/root_vg-mysql_log_lv, size: {{ log_size }} }
   tasks:
-    - name: Configure MySQL 5.7.10 repo
+    - name: Configure MySQL {{ mysql_version }} repo
       tags: [yum, mysql_repo, mysql]
       copy:
         dest: /etc/yum.repos.d/mysql.repo
@@ -13,8 +13,8 @@
         owner: root
         group: root
         content: |
-          [mysql-5.7.10]
-          name=mysql-5.7.10
+          [mysql-{{ mysql_version }}]
+          name=mysql-{{ mysql_version }}
           baseurl=http://cobbler.mmdd.indra.es/cobbler/repo_mirror/mysql/mysql-5.7/5.7.10
           gpgkey=http://cobbler.mmdd.indra.es/cobbler/repo_mirror/mysql/RPM-GPG-KEY-mysql
           gpgcheck=1
@@ -55,7 +55,7 @@
       tags: [fs]
       with_items: "{{ lvm }}"
       filesystem:
-        fstype: xfs
+        fstype: {{ fs_format }}
         dev: "{{ item.dev }}"
 
     - name: Create mysql user
@@ -84,7 +84,7 @@
       with_items: "{{ lvm }}"
       lineinfile:
         path: /etc/fstab
-        line: "{{ item.dev }} {{ item.path }} xfs   defaults  0 0"
+        line: "{{ item.dev }} {{ item.path }} {{ fs_format }}   defaults  0 0"
         insertafter: EOF
       when: grep_result.stdout != ""
 

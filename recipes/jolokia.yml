@@ -1,0 +1,33 @@
+- hosts: all
+  gather_facts: true
+
+  tasks:
+  - name: generate jolokia encrypted password
+    tags: [jboss, jolokia]
+    register: jolokia_hashed_password
+    check_mode: no
+    changed_when: False
+    shell: python -c 'import hashlib; print hashlib.md5("jolokia:ApplicationRealm:aqHG$5}@").hexdigest()'
+
+  - name: add jolokia user and pass to application-users.properties
+    tags: [jboss, jolokia, application-users]
+    copy:
+      dest: /usr/share/jbossas/domain/configuration/application-users.properties
+      owner: jboss
+      group: jboss
+      mode: 0664
+      content: |
+        jolokia={{ jolokia_hashed_password }}
+
+  - name: configure application-roles
+    tags: [jboss, jolokia, application-roles]
+    copy:
+      dest: /usr/share/jbossas/domain/configuration/application-roles.properties
+      owner: jboss
+      group: jboss
+      mode: 0664
+      content: |
+        jolokia=Jolokia
+
+
+  handlers:

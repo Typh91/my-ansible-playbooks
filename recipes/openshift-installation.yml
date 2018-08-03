@@ -1,0 +1,76 @@
+- hosts: all
+  gather_facts: true
+
+  environment:
+    http_proxy: http://172.16.236.20:8080
+    https_proxy: http://172.16.236.20:8080
+
+  tasks:
+    - name: Download Openshift Origin last version
+      tags: [openshift_installation, download]
+      get_url:
+        url: https://github.com/openshift/origin/releases/download/v3.10.0/openshift-origin-server-v3.10.0-dd10d17-linux-64bit.tar.gz
+        dest: /opt/openshift-origin-server.tar.gz
+        use_proxy: yes
+
+    - name: Decompress Openshift Origin tar gz
+      tags: [openshift_installation]
+      unarchive:
+        src: /opt/openshift-origin-server.tar.gz
+        dest: /opt/openshift-origin-server
+
+    - name: Add Openshift Origin directory to system's PATH
+      tags: [openshift_installation]
+      environment:
+        PATH: $PATH:/opt/openshift-origin-server
+
+    - name: Add docker repo to system
+      tags: [openshift_installation, docker]
+      get_url:
+        url: https://download.docker.com/linux/centos/docker-ce.repo
+        dest: /etc/yum.repos.d/docker.repo
+        user_proxy: yes
+
+    - name: Install docker
+      tags: [openshift_installation, docker]
+      yum:
+        name: docker-ce
+        state: latest
+
+    - name: Override docker proxy configuration
+      tags: [openshift_installation, docker]
+      copy:
+        dest: /etc/sytemd/system/docker.service.d/http-proxy.conf
+        mode: 0644
+        owner: root
+        group: root
+        content: |
+          [Service]
+          Environment="http_proxy=http://172.16.236.20:8080"
+          Environment="https_proxy=http://172.16.236.20:8080"
+          Environment="no_proxy=172.30.1.1,.mmdd.indra.es"
+    
+    - name: Reload systemd configuration
+      tags: [openshift_installation, docker]
+      systemd:
+        daemon_reload: yes
+
+    - name: Enable docker service
+      tags: [openshift_installation, docker]
+      systemd:
+        enabled: yes
+
+    - name: Start docker service
+      tags: [openshift_installation, docker]
+      systemd:
+        state: started
+
+    - name: Disable SELinux
+      tags: [openshift_installation, selinux]
+      selinux:
+        state: disabled
+
+    - name: Disable firewall-cmd
+      tags: [openshift_installation, firewalld]
+      firewalld:
+        state: disabled
