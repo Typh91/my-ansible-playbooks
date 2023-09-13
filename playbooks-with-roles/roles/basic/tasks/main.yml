@@ -52,7 +52,7 @@
       enabled=1
       gpgcheck=1
       gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-7
-      proxy=http://172.16.236.20:8080
+      proxy=
 
 - name: Configure Zabbix repo
   tags: [os, yum]
@@ -69,15 +69,15 @@
       fastestmirror_enabled=0
       gpgcheck=1
       gpgkey=http://repo.zabbix.com/RPM-GPG-KEY-ZABBIX-A14FE591
-      proxy=http://172.16.236.20:8080
+      proxy=
 
 - name: Subscribe to RHSM
   tags: [os, yum]
   when: is_subscribed != " Current"
   redhat_subscription:
     state: present
-    server_proxy_hostname: 172.16.236.20
-    server_proxy_port: 8080
+    server_proxy_hostname: 
+    server_proxy_port: 
     username:
     password:
     pool_ids: 8a85f98a5bd22160015bd26ba9cc6d04
